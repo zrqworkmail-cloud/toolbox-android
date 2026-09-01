@@ -25,7 +25,20 @@ android {
     }
 }
 
+// 强制统一 kotlin-stdlib 版本，避免 AGP 8.x 的 checkDebugDuplicateClasses 因
+// appcompat/core 传递拉来的老旧 kotlin-stdlib-jdk7/jdk8:1.6.0 与主 stdlib:1.8.22 冲突。
+configurations.all {
+    resolutionStrategy {
+        force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+    }
+}
+
 dependencies {
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.core:core:1.12.0'
 }
