@@ -24,11 +24,14 @@ jobs:
           accept-android-sdk-licenses: true
           packages: 'platforms;android-34 build-tools;34.0.0'
 
+      - name: Install Gradle 8.2
+        run: |
+          curl -sL https://services.gradle.org/distributions/gradle-8.2-all.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /opt
+          echo "/opt/gradle-8.2/bin" >> "$GITHUB_PATH"
+
       - name: Build Debug APK
-        uses: gradle/gradle-build-action@v3
-        with:
-          gradle-version: 8.2
-          arguments: assembleDebug
+        run: gradle assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
