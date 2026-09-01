@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>单位换算</title>
+<link rel="stylesheet" href="../common.css">
+<style>
+.tabs{display:flex;gap:8px;margin:6px 0 14px}
+.tabs button{flex:1;background:var(--card);border:1px solid var(--line);color:var(--sub);border-radius:10px;padding:10px;font-size:14px}
+.tabs button.on{color:var(--accent);border-color:var(--accent)}
+.src{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;gap:10px;align-items:center}
+.src input{flex:1}
+.src select{width:96px;background:#0f1115;border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:10px}
+.out{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.out .it{display:flex;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px}
+.out .it b{color:var(--accent);font-weight:600}
+.out .it span{color:var(--sub)}
+</style>
+</head>
+<body>
+<header><a class="back" href="../index.html">‹ 返回</a><h1>单位换算</h1><span></span></header>
+<div class="wrap">
+  <div class="tabs" id="tabs"></div>
+  <div class="src">
+    <input id="val" type="number" inputmode="decimal" placeholder="输入数值" value="1">
+    <select id="unit"></select>
+  </div>
+  <div class="out" id="out"></div>
+</div>
+
+<script>
+const CAT={
+  weight:{name:'重量',units:[{k:'t',n:'吨',f:1000},{k:'kg',n:'公斤',f:1},{k:'g',n:'克',f:0.001}]},
+  volume:{name:'体积',units:[{k:'m3',n:'立方米',f:1},{k:'L',n:'升',f:0.001},{k:'cm3',n:'立方厘米',f:1e-6}]},
+  length:{name:'长度',units:[{k:'km',n:'公里',f:1000},{k:'m',n:'米',f:1},{k:'li',n:'里',f:500},{k:'ft',n:'英尺',f:0.3048}]}
+};
+let cur='weight';
+const tabs=document.getElementById('tabs'), unit=document.getElementById('unit'), out=document.getElementById('out'), val=document.getElementById('val');
+
+function buildTabs(){
+  tabs.innerHTML=Object.keys(CAT).map(k=>`<button data-k="${k}" class="${k===cur?'on':''}">${CAT[k].name}</button>`).join('');
+  tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>{ cur=b.dataset.k; buildTabs(); buildUnits(); calc(); });
+}
+function buildUnits(){
+  unit.innerHTML=CAT[cur].units.map(u=>`<option value="${u.k}">${u.n}</option>`).join('');
+}
+function calc(){
+  const v=parseFloat(val.value); const u=CAT[cur].units.find(x=>x.k===unit.value);
+  if(isNaN(v)){ out.innerHTML=''; return; }
+  const base=v*u.f;
+  out.innerHTML=CAT[cur].units.map(x=>{
+    const r=base/x.f;
+    return `<div class="it"><span>${x.n}（${x.k}）</span><b>${fmt(r)}</b></div>`;
+  }).join('');
+}
+function fmt(n){
+  if(!isFinite(n)) return '-';
+  if(n!==0 && Math.abs(n)<1e-4) return n.toExponential(2);
+  return (Math.round(n*10000)/10000).toString();
+}
+buildTabs(); buildUnits();
+val.addEventListener('input',calc); unit.addEventListener('change',calc);
+calc();
+</script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>工具箱</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.card{display:flex;flex-direction:column;gap:8px;min-height:118px;text-decoration:none;color:var(--fg)}
+.card:active{border-color:var(--accent)}
+.card .ico{width:34px;height:34px;border-radius:10px;background:rgba(45,212,191,.12);display:grid;place-items:center;color:var(--accent)}
+.card .nm{font-size:15px;font-weight:600}
+.card .ds{font-size:12px;color:var(--sub);line-height:1.45}
+.badge{font-size:10px;padding:1px 6px;border-radius:999px;background:rgba(56,189,248,.15);color:var(--accent2);align-self:flex-start}
+.badge.off{background:rgba(148,163,184,.15);color:var(--sub)}
+.gear{width:38px;height:38px;border-radius:10px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;color:var(--sub)}
+.gear:active{transform:scale(.95)}
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;z-index:20}
+.mask.show{display:flex}
+.sheet{width:100%;background:var(--card);border-radius:18px 18px 0 0;border-top:1px solid var(--line);padding:18px 16px calc(20px + env(safe-area-inset-bottom))}
+.sheet h2{margin:0 0 12px;font-size:17px}
+.row{display:flex;gap:10px;align-items:center}
+.hint{margin-top:8px;font-size:12px;color:var(--sub);line-height:1.5}
+</style>
+</head>
+<body>
+<header><h1>工具箱</h1><button class="gear" id="gear" aria-label="设置">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+</button></header>
+
+<div class="grid" id="grid"></div>
+
+<div class="tip">
+<b>视频解析下载</b> 需要一台常开的后端（电脑运行「抖音解析服务」）。请在右上角设置里填写后端地址，例如 <b>http://192.168.1.50:8787</b>（电脑的局域网 IP）。其余插件在手机本地运行，离线也能用。
+</div>
+
+<div class="mask" id="mask">
+  <div class="sheet">
+    <h2>解析服务器设置</h2>
+    <div class="row">
+      <input id="sv" placeholder="http://电脑IP:8787" inputmode="url">
+      <button class="btn" id="save">保存</button>
+    </div>
+    <div class="status" id="st"></div>
+    <div class="hint">不知道电脑 IP？在电脑上打开「抖音解析服务」窗口，看「访问地址」一行；手机和电脑需连同一个 WiFi。后端地址填 <b>127.0.0.1</b> 无效（那是电脑自己）。</div>
+  </div>
+</div>
+
+<script>
+const PLUGINS = [
+  {name:'视频解析下载', ds:'粘贴抖音链接，去水印下载', icon:'video', file:'plugins/video.html', needServer:true},
+  {name:'图片压缩', ds:'手机拍照压小再发微信', icon:'image', file:'plugins/compress.html', needServer:false},
+  {name:'单位换算', ds:'吨/公斤·方/立方·公里/里', icon:'scale', file:'plugins/convert.html', needServer:false},
+  {name:'运费试算', ds:'保底+10%抽成测算', icon:'calc', file:'plugins/freight.html', needServer:false},
+  {name:'二维码', ds:'文字/网址变二维码', icon:'qr', file:'plugins/qrcode.html', needServer:false},
+];
+const ICONS = {
+  video:'<path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
+  image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+  scale:'<path d="M12 3v18"/><path d="M5 7h14"/><path d="M5 7l-3 6h6l-3-6z"/><path d="M19 17l-3-6h6l-3 6z"/>',
+  calc:'<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h2M12 10h2M8 14h2M12 14h2M8 18h8"/>',
+  qr:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><rect x="19" y="19" width="2" height="2"/>'
+};
+document.getElementById('grid').innerHTML = PLUGINS.map(p=>`
+  <a class="card" href="${p.file}">
+    <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">${ICONS[p.icon]}</svg></span>
+    <span class="nm">${p.name}</span>
+    <span class="ds">${p.ds}</span>
+    ${p.needServer?'<span class="badge">需后端</span>':'<span class="badge off">本地</span>'}
+  </a>`).join('');
+
+const mask=document.getElementById('mask'), sv=document.getElementById('sv'), st=document.getElementById('st');
+function getServer(){ return (localStorage.getItem('tb_server')||'').trim().replace(/\/+$/,''); }
+document.getElementById('gear').onclick=()=>{ sv.value=getServer(); st.textContent=''; st.className='status'; mask.classList.add('show'); };
+mask.onclick=(e)=>{ if(e.target===mask) mask.classList.remove('show'); };
+document.getElementById('save').onclick=async()=>{
+  let v=sv.value.trim().replace(/\/+$/,'');
+  if(!/^https?:\/\//.test(v)){ st.textContent='请输入以 http:// 或 https:// 开头的地址'; st.className='status err'; return; }
+  localStorage.setItem('tb_server', v);
+  st.textContent='正在测试连接…'; st.className='status wait';
+  try{
+    const r=await fetch(v+'/api/health',{cache:'no-store'});
+    if(r.ok){ const j=await r.json().catch(()=>({})); st.textContent='已连接 ✓ 解析内核：'+(j.browser||'未知'); st.className='status ok'; }
+    else { st.textContent='已保存，但连接返回 '+r.status; st.className='status err'; }
+  }catch(e){ st.textContent='已保存，但无法连接：'+e.message+'（请确认电脑服务已启动、手机同 WiFi）'; st.className='status err'; }
+  setTimeout(()=>mask.classList.remove('show'), 1200);
+};
+</script>
+</body>
+</html>

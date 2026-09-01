@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>运费试算</title>
+<link rel="stylesheet" href="../common.css">
+<style>
+.fld{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.fld label{width:96px;font-size:13px;color:var(--sub)}
+.fld input{flex:1}
+.res{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.res .it{display:flex;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:14px}
+.res .it b{font-size:16px}
+.res .it.company b{color:var(--accent)}
+.res .it.driver b{color:var(--accent2)}
+.res .it.total b{color:#fff}
+.note{font-size:12px;color:var(--sub);margin-top:10px;line-height:1.5}
+</style>
+</head>
+<body>
+<header><a class="back" href="../index.html">‹ 返回</a><h1>运费试算</h1><span></span></header>
+<div class="wrap">
+  <div class="fld"><label>本单运费</label><input id="fee" type="number" inputmode="decimal" placeholder="元" value="0"></div>
+  <div class="fld"><label>保底额</label><input id="floor" type="number" inputmode="decimal" placeholder="元，可填 0" value="0"></div>
+  <div class="fld"><label>抽成率</label><input id="rate" type="number" inputmode="decimal" placeholder="%" value="10"></div>
+  <div class="res" id="res"></div>
+  <div class="note">规则：公司抽成 = max(保底额, 运费 × 抽成率%)。若运费未达保底，按保底额抽成（差额由公司承担/计入）。司机到手 = 运费 − 公司抽成。</div>
+</div>
+
+<script>
+const fee=document.getElementById('fee'), floor=document.getElementById('floor'), rate=document.getElementById('rate'), res=document.getElementById('res');
+function calc(){
+  const f=parseFloat(fee.value)||0, fl=parseFloat(floor.value)||0, r=parseFloat(rate.value)||0;
+  const pct=f*r/100;
+  const company=Math.max(fl, pct);
+  const driver=f-company;
+  const reached=f>=fl && pct>=fl;
+  res.innerHTML=`
+    <div class="it company"><span>公司抽成（${r}%）</span><b>¥${company.toFixed(2)}</b></div>
+    <div class="it driver"><span>司机到手</span><b>¥${driver.toFixed(2)}</b></div>
+    <div class="it total"><span>本单运费合计</span><b>¥${f.toFixed(2)}</b></div>
+    ${!reached?`<div class="note" style="color:#fca5a5">⚠ 本单未达保底 ${fl} 元，已按保底额抽成。</div>`:''}
+  `;
+}
+[fee,floor,rate].forEach(el=>el.addEventListener('input',calc));
+calc();
+</script>
+</body>
+</html>

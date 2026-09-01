@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>二维码</title>
+<link rel="stylesheet" href="../common.css">
+<style>
+.box{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;place-items:center;min-height:180px}
+.box svg{width:220px;height:220px;background:#fff;border-radius:8px}
+.box .ph{color:var(--sub);font-size:13px}
+.meta{font-size:12px;color:var(--sub);margin-top:8px}
+</style>
+</head>
+<body>
+<header><a class="back" href="../index.html">‹ 返回</a><h1>二维码</h1><span></span></header>
+<div class="wrap">
+  <textarea id="txt" placeholder="输入文字或网址，例如 https://www.example.com 或 微信号：abc123"></textarea>
+  <button class="btn block" id="go">生成</button>
+  <div class="box" id="box"><div class="ph">下方显示二维码</div></div>
+  <a class="btn block" id="dl" style="display:none">保存二维码</a>
+  <div class="meta">首次生成需联网加载生成库。生成的二维码用手机扫码即可识别。</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+const txt=document.getElementById('txt'), box=document.getElementById('box'), dl=document.getElementById('dl');
+function gen(){
+  if(typeof qrcode!=='function'){ box.innerHTML='<div class="ph" style="color:#fca5a5">生成库未加载，请检查网络后重试</div>'; return; }
+  const text=txt.value.trim();
+  if(!text){ box.innerHTML='<div class="ph">请先输入内容</div>'; return; }
+  try{
+    const qr=qrcode(0,'M'); qr.addData(text); qr.make();
+    box.innerHTML=qr.createSvgTag({cellSize:6, margin:8});
+    // 导出 PNG 供保存
+    const svg=box.querySelector('svg');
+    const xml=new XMLSerializer().serializeToString(svg);
+    const img=new Image();
+    img.onload=()=>{ const cv=document.createElement('canvas'); cv.width=cv.height=440; cv.getContext('2d').drawImage(img,0,0,440,440);
+      dl.href=cv.toDataURL('image/png'); dl.download='qrcode.png'; dl.style.display='block'; };
+    img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(xml)));
+  }catch(e){ box.innerHTML='<div class="ph" style="color:#fca5a5">生成失败：'+e.message+'</div>'; }
+}
+document.getElementById('go').onclick=gen;
+txt.addEventListener('input',()=>{ if(txt.value.trim()) gen(); });
+</script>
+</body>
+</html>

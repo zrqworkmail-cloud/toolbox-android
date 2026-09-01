@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>图片压缩</title>
+<link rel="stylesheet" href="../common.css">
+<style>
+.prev{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.prev img{width:100%;border-radius:8px;display:block}
+.ctl{display:flex;flex-direction:column;gap:10px;margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.ctl label{font-size:13px;color:var(--sub)}
+.ctl .val{color:var(--fg);font-weight:600}
+.row2{display:flex;align-items:center;gap:10px}
+.row2 input[type=range]{flex:1}
+.meta{font-size:12px;color:var(--sub);margin-top:8px}
+.meta b{color:var(--accent)}
+</style>
+</head>
+<body>
+<header><a class="back" href="../index.html">‹ 返回</a><h1>图片压缩</h1><span></span></header>
+<div class="wrap">
+  <input type="file" id="file" accept="image/*">
+  <div class="ctl">
+    <div class="row2"><label>最长边 <span class="val" id="maxV">1280</span> px</label></div>
+    <input type="range" id="max" min="480" max="2560" step="80" value="1280" oninput="document.getElementById('maxV').textContent=this.value">
+    <div class="row2"><label>画质 <span class="val" id="qV">70</span>%</label></div>
+    <input type="range" id="q" min="10" max="95" step="5" value="70" oninput="document.getElementById('qV').textContent=this.value">
+    <button class="btn block" id="go">压缩</button>
+  </div>
+  <div class="prev" id="prev" style="display:none">
+    <img id="out" alt="压缩结果">
+    <div class="meta" id="meta"></div>
+    <a class="btn block" id="dl">保存到手机</a>
+    <div class="meta">若按钮无反应，可长按上方图片「保存到相册」。</div>
+  </div>
+</div>
+
+<script>
+const fileInput=document.getElementById('file'), prev=document.getElementById('prev'),
+      out=document.getElementById('out'), meta=document.getElementById('meta'), dl=document.getElementById('dl');
+let blobUrl=null, fileName='image.jpg';
+
+fileInput.onchange=()=>{
+  const f=fileInput.files[0]; if(!f) return;
+  fileName=f.name.replace(/\.[^.]+$/,'');
+  const reader=new FileReader();
+  reader.onload=e=>{ const img=new Image(); img.onload=()=>{ window._src=img; document.getElementById('meta').textContent='原图：'+fmt(f.size); prev.style.display='block'; render(img, f.size); }; img.src=e.target.result; };
+  reader.readAsDataURL(f);
+};
+
+function render(img, origSize){
+  const maxW=+document.getElementById('max').value, q=+document.getElementById('q').value/100;
+  let {width:w,height:h}=img;
+  if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
+  const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+  cv.getContext('2d').drawImage(img,0,0,w,h);
+  cv.toBlob(b=>{
+    if(blobUrl) URL.revokeObjectURL(blobUrl);
+    blobUrl=URL.createObjectURL(b);
+    out.src=blobUrl;
+    const rate=origSize? (100*(1-b.size/origSize)).toFixed(0):0;
+    meta.innerHTML=`原图 <b>${fmt(origSize)}</b> → 压缩后 <b>${fmt(b.size)}</b>（减小 ${rate}%）`;
+    dl.href=blobUrl; dl.download=fileName+'_min.jpg';
+  }, 'image/jpeg', q);
+}
+document.getElementById('go').onclick=()=>{ if(window._src) render(window._src, lastSize()); };
+function lastSize(){ const m=document.getElementById('meta').textContent; return 0; }
+function fmt(b){ b=b||0; if(b>1048576) return (b/1048576).toFixed(1)+'MB'; if(b>1024) return (b/1024).toFixed(0)+'KB'; return b+'B'; }
+</script>
+</body>
+</html>

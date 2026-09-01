@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>视频解析下载</title>
+<link rel="stylesheet" href="../common.css">
+</head>
+<body>
+<header><a class="back" href="../index.html">‹ 返回</a><h1>视频解析下载</h1><span></span></header>
+<div class="wrap">
+  <div id="serverWarn" class="warn" style="display:none">未设置解析服务器，请返回首页右上角「设置」填写电脑后端地址。</div>
+  <textarea id="ta" placeholder="粘贴抖音分享链接或文案，例如 https://v.douyin.com/xxxx/"></textarea>
+  <div id="status" class="status"></div>
+  <div id="result"></div>
+  <div id="dl" class="dlbar" style="display:none"></div>
+</div>
+
+<script>
+function getServer(){ return (localStorage.getItem('tb_server')||'').trim().replace(/\/+$/,''); }
+const S=getServer();
+if(!S) document.getElementById('serverWarn').style.display='block';
+
+const ta=document.getElementById('ta'), statusEl=document.getElementById('status'), result=document.getElementById('result');
+let token=null, timer=null;
+
+function setStatus(t,c){ statusEl.textContent=t; statusEl.className='status '+(c||''); }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmtSize(b){ b=b||0; if(b>1048576) return (b/1048576).toFixed(1)+'MB'; if(b>1024) return (b/1024).toFixed(0)+'KB'; return b+'B'; }
+function fmtSpeed(s){ s=s||0; if(s>1048576) return (s/1048576).toFixed(1)+'MB/s'; if(s>1024) return (s/1024).toFixed(0)+'KB/s'; return s+'B/s'; }
+
+ta.addEventListener('input',()=>{
+  clearTimeout(ta._t);
+  const v=ta.value.trim();
+  if(!v) return;
+  ta._t=setTimeout(()=>doParse(v), 500);
+});
+
+async function doParse(text){
+  if(!S){ setStatus('请先设置解析服务器','err'); return; }
+  setStatus('解析中…','wait'); result.innerHTML='';
+  try{
+    const r=await fetch(S+'/api/parse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+    const j=await r.json();
+    if(!j.ok){ setStatus(j.error||'解析失败','err'); return; }
+    token=j.token;
+    setStatus('解析成功 ✓ '+(j.info.title?('《'+j.info.title+'》'):''),'ok');
+    renderQualities(j.info);
+  }catch(e){ setStatus('请求失败：'+e.message,'err'); }
+}
+
+function renderQualities(info){
+  const qs=info.qualities||[];
+  result.innerHTML = `<div class="vinfo">
+    ${info.author?`<div class="author">作者：${esc(info.author)}</div>`:''}
+    <div class="qlist">${qs.map((q,i)=>`<label class="qitem"><input type="radio" name="q" value="${i}" ${i===0?'checked':''}><span>${esc(q.label)}</span>${q.size?`<i>${fmtSize(q.size)}</i>`:''}</label>`).join('')}</div>
+    <button class="btn block" id="go">开始下载</button>
+  </div>`;
+  document.getElementById('go').onclick=()=>{
+    const idx=+document.querySelector('input[name=q]:checked').value;
+    startDownload(idx);
+  };
+}
+
+async function startDownload(idx){
+  setStatus('准备任务…','wait');
+  try{
+    const r=await fetch(S+'/api/prepare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token, qualityIndex:idx})});
+    const j=await r.json();
+    if(!j.ok){ setStatus(j.error||'准备失败','err'); return; }
+    poll(j.jobId);
+  }catch(e){ setStatus('准备失败：'+e.message,'err'); }
+}
+
+function poll(id){
+  const dl=document.getElementById('dl'); dl.style.display='block';
+  timer=setInterval(async()=>{
+    try{
+      const r=await fetch(S+'/api/progress?id='+encodeURIComponent(id),{cache:'no-store'});
+      const j=await r.json();
+      if(!j.ok){ clearInterval(timer); setStatus(j.error||'任务丢失','err'); return; }
+      const pct=j.pct||0;
+      if(j.phase==='done'){
+        clearInterval(timer);
+        const url=S+'/api/file?id='+encodeURIComponent(id);
+        dl.innerHTML=`<div class="dl-row"><span>✅ 完成</span></div>
+          <a class="btn block" href="javascript:location.href='${url}'">保存到手机（下载管理器）</a>
+          <div class="dl-sub">文件将保存到手机「Download」目录</div>`;
+        setStatus('下载完成，点击上方按钮保存到手机','ok');
+        return;
+      }
+      if(j.phase==='error'){ clearInterval(timer); setStatus('下载失败：'+j.error,'err'); return; }
+      dl.innerHTML=`<div class="dl-row"><span>下载中 ${esc(j.title||'')} · ${esc(j.quality||'')}</span><span>${pct}%</span></div>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div class="dl-sub">${fmtSize(j.done)} / ${fmtSize(j.total)} · ${fmtSpeed(j.speed)} ${j.retryMsg?('· '+esc(j.retryMsg)):''}</div>`;
+    }catch(e){ /* 网络抖动忽略一次 */ }
+  }, 1000);
+}
+</script>
+</body>
+</html>
