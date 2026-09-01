@@ -2,8 +2,8 @@
 chcp 65001 >nul
 cd /d "%~dp0"
 
-REM Before first use: replace REPLACE_ME in REPO URL with your GitHub username
-set REPO=https://github.com/REPLACE_ME/toolbox-android.git
+REM Repo URL already set to your account; just double-click to push.
+set REPO=https://github.com/zrqworkmail-cloud/toolbox-android.git
 
 if not exist .git (
   git init
